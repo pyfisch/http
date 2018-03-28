@@ -55,7 +55,9 @@
 use std::any::Any;
 use std::fmt;
 
-use {Uri, Error, Result, HttpTryFrom, Extensions};
+use url::Url;
+
+use {Error, Result, HttpTryFrom, Extensions};
 use header::{HeaderMap, HeaderName, HeaderValue};
 use method::Method;
 use version::Version;
@@ -167,7 +169,7 @@ pub struct Parts {
     pub method: Method,
 
     /// The request's URI
-    pub uri: Uri,
+    pub url: Url,
 
     /// The request's version
     pub version: Version,
@@ -209,8 +211,10 @@ impl Request<()> {
     ///     .unwrap();
     /// ```
     #[inline]
-    pub fn builder() -> Builder {
-        Builder::new()
+    pub fn builder<T>(url: T) -> Builder
+        where Url: HttpTryFrom<T>,
+    {
+        Builder::new(url)
     }
 
 
@@ -228,10 +232,10 @@ impl Request<()> {
     ///     .body(())
     ///     .unwrap();
     /// ```
-    pub fn get<T>(uri: T) -> Builder
-        where Uri: HttpTryFrom<T> {
-        let mut b = Builder::new();
-        b.method(Method::GET).uri(uri);
+    pub fn get<T>(url: T) -> Builder
+        where Url: HttpTryFrom<T> {
+        let mut b = Builder::new(url);
+        b.method(Method::GET);
         b
     }
 
@@ -249,10 +253,10 @@ impl Request<()> {
     ///     .body(())
     ///     .unwrap();
     /// ```
-    pub fn put<T>(uri: T) -> Builder
-        where Uri: HttpTryFrom<T> {
-        let mut b = Builder::new();
-        b.method(Method::PUT).uri(uri);
+    pub fn put<T>(url: T) -> Builder
+        where Url: HttpTryFrom<T> {
+        let mut b = Builder::new(url);
+        b.method(Method::PUT);
         b
     }
 
@@ -270,10 +274,10 @@ impl Request<()> {
     ///     .body(())
     ///     .unwrap();
     /// ```
-    pub fn post<T>(uri: T) -> Builder
-        where Uri: HttpTryFrom<T> {
-        let mut b = Builder::new();
-        b.method(Method::POST).uri(uri);
+    pub fn post<T>(url: T) -> Builder
+        where Url: HttpTryFrom<T> {
+        let mut b = Builder::new(url);
+        b.method(Method::POST);
         b
     }
 
@@ -291,10 +295,10 @@ impl Request<()> {
     ///     .body(())
     ///     .unwrap();
     /// ```
-    pub fn delete<T>(uri: T) -> Builder
-        where Uri: HttpTryFrom<T> {
-        let mut b = Builder::new();
-        b.method(Method::DELETE).uri(uri);
+    pub fn delete<T>(url: T) -> Builder
+        where Url: HttpTryFrom<T> {
+        let mut b = Builder::new(url);
+        b.method(Method::DELETE);
         b
     }
 
@@ -313,10 +317,10 @@ impl Request<()> {
     ///     .unwrap();
     /// # assert_eq!(*request.method(), Method::OPTIONS);
     /// ```
-    pub fn options<T>(uri: T) -> Builder
-        where Uri: HttpTryFrom<T> {
-        let mut b = Builder::new();
-        b.method(Method::OPTIONS).uri(uri);
+    pub fn options<T>(url: T) -> Builder
+        where Url: HttpTryFrom<T> {
+        let mut b = Builder::new(url);
+        b.method(Method::OPTIONS);
         b
     }
 
@@ -334,10 +338,10 @@ impl Request<()> {
     ///     .body(())
     ///     .unwrap();
     /// ```
-    pub fn head<T>(uri: T) -> Builder
-        where Uri: HttpTryFrom<T> {
-        let mut b = Builder::new();
-        b.method(Method::HEAD).uri(uri);
+    pub fn head<T>(url: T) -> Builder
+        where Url: HttpTryFrom<T> {
+        let mut b = Builder::new(url);
+        b.method(Method::HEAD);
         b
     }
 
@@ -355,10 +359,10 @@ impl Request<()> {
     ///     .body(())
     ///     .unwrap();
     /// ```
-    pub fn connect<T>(uri: T) -> Builder
-        where Uri: HttpTryFrom<T> {
-        let mut b = Builder::new();
-        b.method(Method::CONNECT).uri(uri);
+    pub fn connect<T>(url: T) -> Builder
+        where Url: HttpTryFrom<T> {
+        let mut b = Builder::new(url);
+        b.method(Method::CONNECT);
         b
     }
 
@@ -376,10 +380,10 @@ impl Request<()> {
     ///     .body(())
     ///     .unwrap();
     /// ```
-    pub fn patch<T>(uri: T) -> Builder
-        where Uri: HttpTryFrom<T> {
-        let mut b = Builder::new();
-        b.method(Method::PATCH).uri(uri);
+    pub fn patch<T>(url: T) -> Builder
+        where Url: HttpTryFrom<T> {
+        let mut b = Builder::new(url);
+        b.method(Method::PATCH);
         b
     }
 
@@ -397,10 +401,10 @@ impl Request<()> {
     ///     .body(())
     ///     .unwrap();
     /// ```
-    pub fn trace<T>(uri: T) -> Builder
-        where Uri: HttpTryFrom<T> {
-        let mut b = Builder::new();
-        b.method(Method::TRACE).uri(uri);
+    pub fn trace<T>(url: T) -> Builder
+        where Url: HttpTryFrom<T> {
+        let mut b = Builder::new(url);
+        b.method(Method::TRACE);
         b
     }
 }
@@ -421,9 +425,9 @@ impl<T> Request<T> {
     /// assert_eq!(*request.body(), "hello world");
     /// ```
     #[inline]
-    pub fn new(body: T) -> Request<T> {
+    pub fn new(url: Url, body: T) -> Request<T> {
         Request {
-            head: Parts::new(),
+            head: Parts::new(url),
             body: body,
         }
     }
@@ -487,8 +491,8 @@ impl<T> Request<T> {
     /// assert_eq!(*request.uri(), *"/");
     /// ```
     #[inline]
-    pub fn uri(&self) -> &Uri {
-        &self.head.uri
+    pub fn url(&self) -> &Url {
+        &self.head.url
     }
 
     /// Returns a mutable reference to the associated URI.
@@ -502,8 +506,8 @@ impl<T> Request<T> {
     /// assert_eq!(*request.uri(), *"/hello");
     /// ```
     #[inline]
-    pub fn uri_mut(&mut self) -> &mut Uri {
-        &mut self.head.uri
+    pub fn url_mut(&mut self) -> &mut Url {
+        &mut self.head.url
     }
 
     /// Returns the associated version.
@@ -678,17 +682,11 @@ impl<T> Request<T> {
     }
 }
 
-impl<T: Default> Default for Request<T> {
-    fn default() -> Request<T> {
-        Request::new(T::default())
-    }
-}
-
 impl<T: fmt::Debug> fmt::Debug for Request<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Request")
             .field("method", self.method())
-            .field("uri", self.uri())
+            .field("url", self.url())
             .field("version", &self.version())
             .field("headers", self.headers())
             // omits Extensions because not useful
@@ -699,10 +697,10 @@ impl<T: fmt::Debug> fmt::Debug for Request<T> {
 
 impl Parts {
     /// Creates a new default instance of `Parts`
-    fn new() -> Parts {
+    fn new(url: Url) -> Parts {
         Parts{
             method: Method::default(),
-            uri: Uri::default(),
+            url,
             version: Version::default(),
             headers: HeaderMap::default(),
             extensions: Extensions::default(),
@@ -715,7 +713,7 @@ impl fmt::Debug for Parts {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Parts")
             .field("method", &self.method)
-            .field("uri", &self.uri)
+            .field("url", &self.url)
             .field("version", &self.version)
             .field("headers", &self.headers)
             // omits Extensions because not useful
@@ -739,8 +737,20 @@ impl Builder {
     ///     .unwrap();
     /// ```
     #[inline]
-    pub fn new() -> Builder {
-        Builder::default()
+    pub fn new<T>(url: T) -> Builder
+        where Url: HttpTryFrom<T>,
+    {
+        match Url::try_from(url) {
+            Ok(url) => {
+                Builder {
+                    head: Some(Parts::new(url)),
+                    err: None,
+                }
+            }
+            Err(_) => {
+                panic!()
+            }
+        }
     }
 
     /// Set the HTTP method for this request.
@@ -766,35 +776,6 @@ impl Builder {
         if let Some(head) = head(&mut self.head, &self.err) {
             match Method::try_from(method) {
                 Ok(s) => head.method = s,
-                Err(e) => self.err = Some(e.into()),
-            }
-        }
-        self
-    }
-
-    /// Set the URI for this request.
-    ///
-    /// This function will configure the URI of the `Request` that will
-    /// be returned from `Builder::build`.
-    ///
-    /// By default this is `/`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use http::*;
-    ///
-    /// let req = Request::builder()
-    ///     .uri("https://www.rust-lang.org/")
-    ///     .body(())
-    ///     .unwrap();
-    /// ```
-    pub fn uri<T>(&mut self, uri: T) -> &mut Builder
-        where Uri: HttpTryFrom<T>,
-    {
-        if let Some(head) = head(&mut self.head, &self.err) {
-            match Uri::try_from(uri) {
-                Ok(s) => head.uri = s,
                 Err(e) => self.err = Some(e.into()),
             }
         }
@@ -933,16 +914,6 @@ fn head<'a>(head: &'a mut Option<Parts>, err: &Option<Error>)
         return None
     }
     head.as_mut()
-}
-
-impl Default for Builder {
-    #[inline]
-    fn default() -> Builder {
-        Builder {
-            head: Some(Parts::new()),
-            err: None,
-        }
-    }
 }
 
 #[cfg(test)]

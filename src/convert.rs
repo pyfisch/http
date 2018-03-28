@@ -1,9 +1,10 @@
+use url::Url;
+
 use Error;
 use header::{HeaderName, HeaderValue};
 use method::Method;
 use sealed::Sealed;
 use status::StatusCode;
-use uri::Uri;
 
 /// Private trait for the `http` crate to have generic methods with fallible
 /// conversions.
@@ -37,7 +38,7 @@ macro_rules! reflexive {
 }
 
 reflexive! {
-    Uri,
+    Url,
     Method,
     StatusCode,
     HeaderName,

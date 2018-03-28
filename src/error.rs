@@ -2,10 +2,11 @@ use std::error;
 use std::fmt;
 use std::result;
 
+use url;
+
 use header;
 use method;
 use status;
-use uri;
 
 /// A generic "error" for HTTP connections
 ///
@@ -25,9 +26,7 @@ pub type Result<T> = result::Result<T, Error>;
 enum ErrorKind {
     StatusCode(status::InvalidStatusCode),
     Method(method::InvalidMethod),
-    Uri(uri::InvalidUri),
-    UriShared(uri::InvalidUriBytes),
-    UriParts(uri::InvalidUriParts),
+    Url(url::ParseError),
     HeaderName(header::InvalidHeaderName),
     HeaderNameShared(header::InvalidHeaderNameBytes),
     HeaderValue(header::InvalidHeaderValue),
@@ -47,9 +46,7 @@ impl error::Error for Error {
         match self.inner {
             StatusCode(ref e) => e.description(),
             Method(ref e) => e.description(),
-            Uri(ref e) => e.description(),
-            UriShared(ref e) => e.description(),
-            UriParts(ref e) => e.description(),
+            Url(ref e) => e.description(),
             HeaderName(ref e) => e.description(),
             HeaderNameShared(ref e) => e.description(),
             HeaderValue(ref e) => e.description(),
@@ -70,21 +67,9 @@ impl From<method::InvalidMethod> for Error {
     }
 }
 
-impl From<uri::InvalidUri> for Error {
-    fn from(err: uri::InvalidUri) -> Error {
-        Error { inner: ErrorKind::Uri(err) }
-    }
-}
-
-impl From<uri::InvalidUriBytes> for Error {
-    fn from(err: uri::InvalidUriBytes) -> Error {
-        Error { inner: ErrorKind::UriShared(err) }
-    }
-}
-
-impl From<uri::InvalidUriParts> for Error {
-    fn from(err: uri::InvalidUriParts) -> Error {
-        Error { inner: ErrorKind::UriParts(err) }
+impl From<url::ParseError> for Error {
+    fn from(err: url::ParseError) -> Error {
+        Error { inner: ErrorKind::Url(err) }
     }
 }
 

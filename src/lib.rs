@@ -161,6 +161,7 @@
 
 extern crate bytes;
 extern crate fnv;
+extern crate url;
 
 pub mod header;
 pub mod method;
@@ -168,7 +169,6 @@ pub mod request;
 pub mod response;
 pub mod status;
 pub mod version;
-pub mod uri;
 
 mod byte_str;
 mod convert;
@@ -183,7 +183,6 @@ pub use method::Method;
 pub use request::Request;
 pub use response::Response;
 pub use status::StatusCode;
-pub use uri::Uri;
 pub use version::Version;
 
 fn _assert_types() {

@@ -1,4 +1,4 @@
-use url::Url;
+use url::{Url, ParseError};
 
 use Error;
 use header::{HeaderName, HeaderValue};
@@ -43,4 +43,12 @@ reflexive! {
     StatusCode,
     HeaderName,
     HeaderValue,
+}
+
+impl<'a> HttpTryFrom<&'a str> for Url {
+    type Error =  ParseError;
+
+    fn try_from(input: &str) -> Result<Url, ParseError> {
+        Url::parse(input)
+    }
 }

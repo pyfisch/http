@@ -741,14 +741,13 @@ impl Builder {
         where Url: HttpTryFrom<T>,
     {
         match Url::try_from(url) {
-            Ok(url) => {
-                Builder {
-                    head: Some(Parts::new(url)),
-                    err: None,
-                }
-            }
-            Err(_) => {
-                panic!()
+            Ok(url) => Builder {
+                head: Some(Parts::new(url)),
+                err: None,
+            },
+            Err(e) => Builder {
+                head: None,
+                err: Some(e.into()),
             }
         }
     }
@@ -922,7 +921,7 @@ mod tests {
 
     #[test]
     fn it_can_map_a_body_from_one_type_to_another() {
-        let request= Request::builder().body("some string").unwrap();
+        let request= Request::builder("https://example.com").body("some string").unwrap();
         let mapped_request = request.map(|s| {
             assert_eq!(s, "some string");
             123u32

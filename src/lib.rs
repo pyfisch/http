@@ -34,7 +34,7 @@
 //! use http::{Request, Response};
 //!
 //! fn response(req: Request<()>) -> http::Result<Response<()>> {
-//!     match req.uri().path() {
+//!     match req.url().path() {
 //!         "/" => index(req),
 //!         "/foo" => foo(req),
 //!         "/bar" => bar(req),
@@ -138,24 +138,6 @@
 //! provides a `HeaderMap` type which is a specialized hash map for keys as
 //! `HeaderName` and generic values. This type, like header names, is optimized
 //! for common usage but should continue to scale with your needs over time.
-//!
-//! # URIs
-//!
-//! Each HTTP `Request` has an associated URI with it. This may just be a path
-//! like `/index.html` but it could also be an absolute URL such as
-//! `https://www.rust-lang.org/index.html`. A `URI` has a number of accessors to
-//! interpret it:
-//!
-//! ```
-//! use http::Uri;
-//!
-//! let uri = "https://www.rust-lang.org/index.html".parse::<Uri>().unwrap();
-//!
-//! assert_eq!(uri.scheme(), Some("https"));
-//! assert_eq!(uri.host(), Some("www.rust-lang.org"));
-//! assert_eq!(uri.path(), "/index.html");
-//! assert_eq!(uri.query(), None);
-//! ```
 
 #![deny(warnings, missing_docs, missing_debug_implementations)]
 
@@ -183,6 +165,7 @@ pub use method::Method;
 pub use request::Request;
 pub use response::Response;
 pub use status::StatusCode;
+pub use url::Url;
 pub use version::Version;
 
 fn _assert_types() {

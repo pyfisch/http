@@ -12,9 +12,8 @@
 //! ```no_run
 //! use http::{Request, Response};
 //!
-//! let mut request = Request::builder();
-//! request.uri("https://www.rust-lang.org/")
-//!        .header("User-Agent", "my-awesome-agent/1.0");
+//! let mut request = Request::builder("https://www.rust-lang.org/");
+//! request.header("User-Agent", "my-awesome-agent/1.0");
 //!
 //! if needs_awesome_header() {
 //!     request.header("Awesome", "yes");
@@ -38,7 +37,7 @@
 //! use http::{Request, Response, StatusCode};
 //!
 //! fn respond_to(req: Request<()>) -> http::Result<Response<()>> {
-//!     if req.uri() != "/awesome-url" {
+//!     if req.url().path() != "/awesome-url" {
 //!         return Response::builder()
 //!             .status(StatusCode::NOT_FOUND)
 //!             .body(())
@@ -76,9 +75,8 @@ use version::Version;
 /// ```no_run
 /// use http::{Request, Response};
 ///
-/// let mut request = Request::builder();
-/// request.uri("https://www.rust-lang.org/")
-///        .header("User-Agent", "my-awesome-agent/1.0");
+/// let mut request = Request::builder("https://www.rust-lang.org/");
+/// request.header("User-Agent", "my-awesome-agent/1.0");
 ///
 /// if needs_awesome_header() {
 ///     request.header("Awesome", "yes");
@@ -102,7 +100,7 @@ use version::Version;
 /// use http::{Request, Response, StatusCode};
 ///
 /// fn respond_to(req: Request<()>) -> http::Result<Response<()>> {
-///     if req.uri() != "/awesome-url" {
+///     if req.url().path() != "/awesome-url" {
 ///         return Response::builder()
 ///             .status(StatusCode::NOT_FOUND)
 ///             .body(())
@@ -203,9 +201,8 @@ impl Request<()> {
     ///
     /// ```
     /// # use http::*;
-    /// let request = Request::builder()
+    /// let request = Request::builder("https://www.rust-lang.org/")
     ///     .method("GET")
-    ///     .uri("https://www.rust-lang.org/")
     ///     .header("X-Custom-Foo", "Bar")
     ///     .body(())
     ///     .unwrap();
@@ -419,7 +416,7 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let request = Request::new("hello world");
+    /// let request = Request::new(Url::parse("http://example.org").unwrap(), "hello world");
     ///
     /// assert_eq!(*request.method(), Method::GET);
     /// assert_eq!(*request.body(), "hello world");
@@ -438,7 +435,7 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let request = Request::new("hello world");
+    /// let request = Request::new(Url::parse("http://example.org").unwrap(), "hello world");
     /// let (mut parts, body) = request.into_parts();
     /// parts.method = Method::POST;
     ///
@@ -458,7 +455,7 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let request: Request<()> = Request::default();
+    /// let request: Request<()> = Request::new(Url::parse("http://example.org/").unwrap(), ());
     /// assert_eq!(*request.method(), Method::GET);
     /// ```
     #[inline]
@@ -472,7 +469,7 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let mut request: Request<()> = Request::default();
+    /// let mut request: Request<()> = Request::new(Url::parse("http://example.org/").unwrap(), ());
     /// *request.method_mut() = Method::PUT;
     /// assert_eq!(*request.method(), Method::PUT);
     /// ```
@@ -487,8 +484,8 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let request: Request<()> = Request::default();
-    /// assert_eq!(*request.uri(), *"/");
+    /// let request: Request<()> = Request::new(Url::parse("http://example.org/").unwrap(), ());
+    /// assert_eq!(request.url().as_str(), "http://example.org/");
     /// ```
     #[inline]
     pub fn url(&self) -> &Url {
@@ -501,9 +498,9 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let mut request: Request<()> = Request::default();
-    /// *request.uri_mut() = "/hello".parse().unwrap();
-    /// assert_eq!(*request.uri(), *"/hello");
+    /// let mut request: Request<()> = Request::new(Url::parse("http://example.org/").unwrap(), ());
+    /// request.url_mut().set_path("/hello");
+    /// assert_eq!(request.url().path(), "/hello");
     /// ```
     #[inline]
     pub fn url_mut(&mut self) -> &mut Url {
@@ -516,7 +513,7 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let request: Request<()> = Request::default();
+    /// let request: Request<()> = Request::new(Url::parse("http://example.org/").unwrap(), ());
     /// assert_eq!(request.version(), Version::HTTP_11);
     /// ```
     #[inline]
@@ -530,7 +527,7 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let mut request: Request<()> = Request::default();
+    /// let mut request: Request<()> = Request::new(Url::parse("http://example.org/").unwrap(), ());
     /// *request.version_mut() = Version::HTTP_2;
     /// assert_eq!(request.version(), Version::HTTP_2);
     /// ```
@@ -545,7 +542,7 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let request: Request<()> = Request::default();
+    /// let request: Request<()> = Request::new(Url::parse("http://example.org/").unwrap(), ());
     /// assert!(request.headers().is_empty());
     /// ```
     #[inline]
@@ -560,7 +557,7 @@ impl<T> Request<T> {
     /// ```
     /// # use http::*;
     /// # use http::header::*;
-    /// let mut request: Request<()> = Request::default();
+    /// let mut request: Request<()> = Request::new(Url::parse("http://example.org/").unwrap(), ());
     /// request.headers_mut().insert(HOST, HeaderValue::from_static("world"));
     /// assert!(!request.headers().is_empty());
     /// ```
@@ -576,7 +573,7 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let request: Request<()> = Request::default();
+    /// let request: Request<()> = Request::new(Url::parse("http://example.org/").unwrap(), ());
     /// assert!(request.extensions().get::<i32>().is_none());
     /// ```
     #[inline]
@@ -591,7 +588,7 @@ impl<T> Request<T> {
     /// ```
     /// # use http::*;
     /// # use http::header::*;
-    /// let mut request: Request<()> = Request::default();
+    /// let mut request: Request<()> = Request::new(Url::parse("http://example.org/").unwrap(), ());
     /// request.extensions_mut().insert("hello");
     /// assert_eq!(request.extensions().get(), Some(&"hello"));
     /// ```
@@ -606,7 +603,7 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let request: Request<String> = Request::default();
+    /// let request: Request<String> = Request::new(Url::parse("http://example.org/").unwrap(), Default::default());
     /// assert!(request.body().is_empty());
     /// ```
     #[inline]
@@ -620,7 +617,7 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let mut request: Request<String> = Request::default();
+    /// let mut request: Request<String> = Request::new(Url::parse("http://example.org/").unwrap(), Default::default());
     /// request.body_mut().push_str("hello world");
     /// assert!(!request.body().is_empty());
     /// ```
@@ -635,8 +632,8 @@ impl<T> Request<T> {
     /// # Examples
     ///
     /// ```
-    /// # use http::Request;
-    /// let request = Request::new(10);
+    /// # use http::{Request, Url};
+    /// let request = Request::new(Url::parse("http://example.org").unwrap(), 10);
     /// let body = request.into_body();
     /// assert_eq!(body, 10);
     /// ```
@@ -651,7 +648,7 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let request = Request::new(());
+    /// let request = Request::new(Url::parse("https://example.org").unwrap(), ());
     /// let (parts, body) = request.into_parts();
     /// assert_eq!(parts.method, Method::GET);
     /// ```
@@ -667,7 +664,7 @@ impl<T> Request<T> {
     ///
     /// ```
     /// # use http::*;
-    /// let request = Request::builder().body("some string").unwrap();
+    /// let request = Request::builder("http://example.org").body("some string").unwrap();
     /// let mapped_request: Request<&[u8]> = request.map(|b| {
     ///   assert_eq!(b, "some string");
     ///   b.as_bytes()
@@ -731,7 +728,7 @@ impl Builder {
     /// ```
     /// # use http::*;
     ///
-    /// let req = request::Builder::new()
+    /// let req = request::Builder::new("http://example.org/")
     ///     .method("POST")
     ///     .body(())
     ///     .unwrap();
@@ -764,7 +761,7 @@ impl Builder {
     /// ```
     /// # use http::*;
     ///
-    /// let req = Request::builder()
+    /// let req = Request::builder("http://example.org")
     ///     .method("POST")
     ///     .body(())
     ///     .unwrap();
@@ -793,7 +790,7 @@ impl Builder {
     /// ```
     /// # use http::*;
     ///
-    /// let req = Request::builder()
+    /// let req = Request::builder("http://example.org")
     ///     .version(Version::HTTP_2)
     ///     .body(())
     ///     .unwrap();
@@ -817,7 +814,7 @@ impl Builder {
     /// # use http::*;
     /// # use http::header::HeaderValue;
     ///
-    /// let req = Request::builder()
+    /// let req = Request::builder("http://example.org")
     ///     .header("Accept", "text/html")
     ///     .header("X-Custom-Foo", "bar")
     ///     .body(())
@@ -848,7 +845,7 @@ impl Builder {
     /// ```
     /// # use http::*;
     ///
-    /// let req = Request::builder()
+    /// let req = Request::builder("http://example.org")
     ///     .extension("My Extension")
     ///     .body(())
     ///     .unwrap();
@@ -894,7 +891,7 @@ impl Builder {
     /// ```
     /// # use http::*;
     ///
-    /// let request = Request::builder()
+    /// let request = Request::builder("http://example.org")
     ///     .body(())
     ///     .unwrap();
     /// ```

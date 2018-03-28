@@ -61,6 +61,12 @@ use header::{HeaderMap, HeaderName, HeaderValue};
 use method::Method;
 use version::Version;
 
+/// Possible errors that occur when converting request targets.
+#[derive(Debug)]
+pub struct BadTarget {
+    _priv: (),
+}
+
 /// Represents an HTTP request.
 ///
 /// An HTTP request consists of a head and a potentially optional body. The body
@@ -160,13 +166,13 @@ pub struct Request<T> {
 
 /// Component parts of an HTTP `Request`
 ///
-/// The HTTP request head consists of a method, uri, version, and a set of
+/// The HTTP request head consists of a method, URL, version, and a set of
 /// header fields.
 pub struct Parts {
     /// The request's method
     pub method: Method,
 
-    /// The request's URI
+    /// The request's URL
     pub url: Url,
 
     /// The request's version
@@ -190,6 +196,10 @@ pub struct Builder {
     head: Option<Parts>,
     err: Option<Error>,
 }
+
+/// HTTP extension for `OPTIONS *` requests.
+#[derive(Debug, Copy, Clone)]
+pub struct WholeServer;
 
 impl Request<()> {
     /// Creates a new builder-style object to manufacture a `Request`
@@ -215,7 +225,7 @@ impl Request<()> {
     }
 
 
-    /// Creates a new `Builder` initialized with a GET method and the given URI.
+    /// Creates a new `Builder` initialized with a GET method and the given URL.
     ///
     /// This method returns an instance of `Builder` which can be used to
     /// create a `Request`.
@@ -236,7 +246,7 @@ impl Request<()> {
         b
     }
 
-    /// Creates a new `Builder` initialized with a PUT method and the given URI.
+    /// Creates a new `Builder` initialized with a PUT method and the given URL.
     ///
     /// This method returns an instance of `Builder` which can be used to
     /// create a `Request`.
@@ -257,7 +267,7 @@ impl Request<()> {
         b
     }
 
-    /// Creates a new `Builder` initialized with a POST method and the given URI.
+    /// Creates a new `Builder` initialized with a POST method and the given URL.
     ///
     /// This method returns an instance of `Builder` which can be used to
     /// create a `Request`.
@@ -278,7 +288,7 @@ impl Request<()> {
         b
     }
 
-    /// Creates a new `Builder` initialized with a DELETE method and the given URI.
+    /// Creates a new `Builder` initialized with a DELETE method and the given URL.
     ///
     /// This method returns an instance of `Builder` which can be used to
     /// create a `Request`.
@@ -299,7 +309,7 @@ impl Request<()> {
         b
     }
 
-    /// Creates a new `Builder` initialized with an OPTIONS method and the given URI.
+    /// Creates a new `Builder` initialized with an OPTIONS method and the given URL.
     ///
     /// This method returns an instance of `Builder` which can be used to
     /// create a `Request`.
@@ -321,7 +331,7 @@ impl Request<()> {
         b
     }
 
-    /// Creates a new `Builder` initialized with a HEAD method and the given URI.
+    /// Creates a new `Builder` initialized with a HEAD method and the given URL.
     ///
     /// This method returns an instance of `Builder` which can be used to
     /// create a `Request`.
@@ -342,7 +352,7 @@ impl Request<()> {
         b
     }
 
-    /// Creates a new `Builder` initialized with a CONNECT method and the given URI.
+    /// Creates a new `Builder` initialized with a CONNECT method and the given URL.
     ///
     /// This method returns an instance of `Builder` which can be used to
     /// create a `Request`.
@@ -363,7 +373,7 @@ impl Request<()> {
         b
     }
 
-    /// Creates a new `Builder` initialized with a PATCH method and the given URI.
+    /// Creates a new `Builder` initialized with a PATCH method and the given URL.
     ///
     /// This method returns an instance of `Builder` which can be used to
     /// create a `Request`.
@@ -384,7 +394,7 @@ impl Request<()> {
         b
     }
 
-    /// Creates a new `Builder` initialized with a TRACE method and the given URI.
+    /// Creates a new `Builder` initialized with a TRACE method and the given URL.
     ///
     /// This method returns an instance of `Builder` which can be used to
     /// create a `Request`.
@@ -478,7 +488,7 @@ impl<T> Request<T> {
         &mut self.head.method
     }
 
-    /// Returns a reference to the associated URI.
+    /// Returns a reference to the associated URL.
     ///
     /// # Examples
     ///
@@ -492,7 +502,7 @@ impl<T> Request<T> {
         &self.head.url
     }
 
-    /// Returns a mutable reference to the associated URI.
+    /// Returns a mutable reference to the associated URL.
     ///
     /// # Examples
     ///
@@ -749,6 +759,16 @@ impl Builder {
         }
     }
 
+    /// Send the request to the whole server,
+    /// as opposed to a specific named resource.
+    ///
+    /// Only valid in combination with an `OPTIONS` request
+    /// and an empty path.
+    pub fn whole_server(&mut self) -> &mut Builder {
+        self.extension(WholeServer);
+        self
+    }
+
     /// Set the HTTP method for this request.
     ///
     /// This function will configure the HTTP method of the `Request` that will
@@ -910,6 +930,49 @@ fn head<'a>(head: &'a mut Option<Parts>, err: &Option<Error>)
         return None
     }
     head.as_mut()
+}
+
+impl fmt::Display for BadTarget {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use std::error::Error;
+        write!(f, "{}", self.description())
+    }
+}
+
+impl ::std::error::Error for BadTarget {
+    fn description(&self) -> &str {
+        "invalid request URL"
+    }
+}
+
+/// Get data for pseudo-headers or request-line/Host header.
+///
+/// Return data:
+///
+/// 1. `:scheme` pseudo header
+/// 2. `:authority` pseudo header / `Host` header field
+/// 3. `:path` pseudo header / `request-target` in request line
+///
+/// Fails if the authority is empty,
+/// or the request targets the whole server but the path is not empty.
+pub fn get_target_components<T>(request: &Request<T>) -> Result<(&str, &str, &str)> {
+    use url::Position::*;
+
+    let url = request.url();
+    let scheme = url.scheme();
+    let authority = &url[BeforeHost..AfterPort];
+    if authority.is_empty() {
+        return Err(BadTarget { _priv: () }.into());
+    }
+    let path = if request.extensions().get::<WholeServer>().is_some() {
+        if url.path() != "/" {
+            return Err(BadTarget { _priv: () }.into());
+        }
+        "*"
+    } else {
+        &url[BeforePath..AfterQuery]
+    };
+    Ok((scheme, authority, path))
 }
 
 #[cfg(test)]

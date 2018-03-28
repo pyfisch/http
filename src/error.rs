@@ -6,6 +6,7 @@ use url;
 
 use header;
 use method;
+use request;
 use status;
 
 /// A generic "error" for HTTP connections
@@ -27,6 +28,7 @@ enum ErrorKind {
     StatusCode(status::InvalidStatusCode),
     Method(method::InvalidMethod),
     Url(url::ParseError),
+    BadTarget(request::BadTarget),
     HeaderName(header::InvalidHeaderName),
     HeaderNameShared(header::InvalidHeaderNameBytes),
     HeaderValue(header::InvalidHeaderValue),
@@ -47,6 +49,7 @@ impl error::Error for Error {
             StatusCode(ref e) => e.description(),
             Method(ref e) => e.description(),
             Url(ref e) => e.description(),
+            BadTarget(ref e) => e.description(),
             HeaderName(ref e) => e.description(),
             HeaderNameShared(ref e) => e.description(),
             HeaderValue(ref e) => e.description(),
@@ -70,6 +73,12 @@ impl From<method::InvalidMethod> for Error {
 impl From<url::ParseError> for Error {
     fn from(err: url::ParseError) -> Error {
         Error { inner: ErrorKind::Url(err) }
+    }
+}
+
+impl From<request::BadTarget> for Error {
+    fn from(err: request::BadTarget) -> Error {
+        Error { inner: ErrorKind::BadTarget(err) }
     }
 }
 

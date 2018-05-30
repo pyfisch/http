@@ -143,7 +143,7 @@
 
 extern crate bytes;
 extern crate fnv;
-extern crate url;
+pub extern crate url;
 
 pub mod header;
 pub mod method;

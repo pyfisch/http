@@ -1,4 +1,13 @@
-# HTTP
+# HTTP with URL
+
+Did it ever bother you that you could not use regular URLs in Rust when using HTTP?
+
+This crate modifies the HTTP crate to use URLs for requests.
+
+See my [blog post](https://pyfisch/blog/http-with-url/) and the [boguin HTTP client](https://github.com/pyfisch/boguin).
+
+
+# Original README
 
 A general purpose library of common HTTP types
 

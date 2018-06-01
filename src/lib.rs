@@ -1,7 +1,12 @@
-#![doc(html_root_url = "https://docs.rs/http/0.1.5")]
+#![doc(html_root_url = "https://docs.rs/http-with-url/0.2.0")]
 
 //! A general purpose library of common HTTP types
 //!
+//! HTTP crate with URLs used for requests.
+//! See the [blog post](https://pyfisch/blog/http-with-url/) for more info.
+//! 
+//! # Old docs
+//! 
 //! This crate is a general purpose library for common types found when working
 //! with the HTTP protocol. You'll find `Request` and `Response` types for
 //! working as either a client or a server as well as all of their components.

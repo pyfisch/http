@@ -1,3 +1,7 @@
+# 0.2.0-demo (June 1, 2018)
+* Forked from original *http* crate
+* Use the *rust-url* crate for request URLs
+
 # 0.1.5 (February 28, 2018)
 
 * Add websocket handshake related header constants (#162).
